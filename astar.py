@@ -75,7 +75,9 @@ class AStarPathfinder:
             float: Resultado da heurística.
         """
 
-        return None
+        # Estima o custo restante ate o objetivo; a distancia das paredes deve
+        # ser considerada no custo dos movimentos, nao nesta estimativa.
+        return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
     def find_path(self):
         """

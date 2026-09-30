@@ -31,6 +31,9 @@ class AStarPathfinder:
         self.potential_field = self.create_potential_field()
         
 
+    # Normaliza o mapa para o formato usado pelo A*: 0 representa obstáculo,
+    # 128 representa área desconhecida e 255 representa espaço livre.
+    # Valores intermediários são tratados como obstáculos para evitar colisões.
     def preprocess_map(self, map_array: np.array) -> np.array:
         """
         Ajusta o mapa, convertendo valores intermediários para obstáculos.
@@ -41,7 +44,15 @@ class AStarPathfinder:
         Returns:
             np.array: Mapa processado.
         """
-        return None
+        map_array = np.asarray(map_array)
+        if map_array.ndim != 2:
+            raise ValueError("O mapa deve ser um array bidimensional.")
+
+        processed_map = np.full(map_array.shape, 128, dtype=np.uint8)
+        processed_map[(map_array != 128) & (map_array < 250)] = 0
+        processed_map[map_array >= 250] = 255
+
+        return processed_map
 
     def create_potential_field(self) -> np.array:
         """
@@ -176,6 +187,9 @@ class AStarPathfinder:
             return None
 
 
+# Lê um mapa PGM, converte seus níveis de cinza para as classes do A*,
+# inverte o eixo vertical para alinhar a imagem ao sistema de coordenadas
+# do mapa e adiciona uma borda desconhecida de 200 células.
 def prep_map(map_path: str) -> np.array:
     """
     Prepara o mapa carregando e processando a imagem de entrada.
@@ -187,16 +201,21 @@ def prep_map(map_path: str) -> np.array:
         np.array: O mapa processado como um array numpy.
     """
     map_array = cv2.imread(map_path, cv2.IMREAD_GRAYSCALE)
-    map_array[map_array == 0] = 0
-    map_array[map_array == 205] = 128
-    map_array[map_array == 254] = 255
-    map_array[(map_array >= 60) & (map_array != 128) & (map_array != 255)] = 0
-    map_array = map_array.astype(np.uint8)
-    kernel = np.ones((3, 3), np.uint8)
-    map_array = cv2.morphologyEx(map_array, cv2.MORPH_OPEN, kernel)
-    map_array = np.flipud(map_array)
-    map_array = np.pad(map_array, ((0, 200), (0, 200)), 'constant', constant_values=128)
-    return map_array
+    if map_array is None:
+        raise FileNotFoundError(f"Não foi possível carregar o mapa: {map_path}")
+
+    prepared_map = np.full(map_array.shape, 128, dtype=np.uint8)
+    prepared_map[(map_array != 205) & (map_array < 250)] = 0
+    prepared_map[map_array >= 250] = 255
+
+    prepared_map = np.flipud(prepared_map)
+    prepared_map = np.pad(
+        prepared_map,
+        ((0, 200), (0, 200)),
+        mode='constant',
+        constant_values=128,
+    )
+    return prepared_map
 
 
 def main():

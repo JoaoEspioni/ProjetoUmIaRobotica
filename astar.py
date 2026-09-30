@@ -61,7 +61,11 @@ class AStarPathfinder:
         Returns:
             np.array: Campo potencial.
         """
-        return None
+        # Obstáculos são 0 no preprocess_map
+        is_traversable = (self.map_array != 0)
+        dist = distance_transform_edt(is_traversable)
+        potential = 1.0 + self.wall_influence * np.exp(-dist / self.buffer_factor)
+        return potential
 
     def heuristic(self, a: tuple, b: tuple) -> float:
         """
